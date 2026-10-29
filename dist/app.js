@@ -45,4 +45,5 @@ app.use((_req, _res, next) => {
 });
 // Global Error Handler
 app.use(errorHandler);
+export default app;
 //# sourceMappingURL=app.js.map
