@@ -54,6 +54,8 @@ The schema defines 22 tables in `src/db/schema.ts`:
 
 ## 📡 API Endpoints (`/api/v1`)
 
+> 📖 **Full API Reference:** For request/response schemas, JSON payloads, headers, error codes, and curl examples, see [API_DOCS.md](file:///home/abdo-bahig/Desktop/Catoza%20Backend/Catoza%20Backend/API_DOCS.md).
+
 | Area | Method | Endpoint | Description |
 |---|---|---|---|
 | **Health** | `GET` | `/health` | Uptime check, DB ping, minimum app version |
