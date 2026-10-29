@@ -1,0 +1,174 @@
+import { ParticipantShareInput, SplitMethod } from "../domain/index.js";
+export interface CreateExpenseInput {
+    householdId: string;
+    payerId: string;
+    createdBy: string;
+    title: string;
+    notes?: string;
+    amountMinor: bigint | number | string;
+    currency?: string;
+    category?: string;
+    expenseDate?: Date | string;
+    splitMethod: SplitMethod;
+    participants: ParticipantShareInput[];
+    receiptUrl?: string;
+}
+export declare class ExpenseService {
+    static createExpense(input: CreateExpenseInput): Promise<{
+        shares: import("../domain/types.js").CalculatedShare[];
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        currency: string;
+        createdBy: string;
+        version: number;
+        householdId: string;
+        status: string;
+        payerId: string;
+        title: string;
+        notes: string | null;
+        amountMinor: bigint;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        receiptUrl: string | null;
+        deletedAt: Date | null;
+    }>;
+    static getExpense(expenseId: string): Promise<{
+        shares: {
+            userId: string;
+            shareMinor: bigint;
+            displayName: string;
+            avatarUrl: string | null;
+        }[];
+        events: {
+            id: string;
+            type: string;
+            actorId: string;
+            actorName: string;
+            diffJson: unknown;
+            createdAt: Date;
+        }[];
+        comments: {
+            id: string;
+            body: string;
+            createdAt: Date;
+            authorId: string;
+            authorName: string;
+            authorAvatar: string | null;
+        }[];
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        currency: string;
+        createdBy: string;
+        version: number;
+        householdId: string;
+        status: string;
+        payerId: string;
+        title: string;
+        notes: string | null;
+        amountMinor: bigint;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        receiptUrl: string | null;
+        deletedAt: Date | null;
+    }>;
+    static listExpenses(householdId: string, options?: {
+        category?: string;
+        status?: "active" | "cancelled" | "disputed";
+        limit?: number;
+        offset?: number;
+    }): Promise<{
+        id: string;
+        title: string;
+        amountMinor: bigint;
+        currency: string;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        status: string;
+        receiptUrl: string | null;
+        version: number;
+        createdAt: Date;
+        payerId: string;
+        payerName: string;
+    }[]>;
+    static updateExpense(expenseId: string, actorId: string, data: {
+        title?: string;
+        notes?: string;
+        amountMinor?: bigint | number | string;
+        category?: string;
+        expenseDate?: Date | string;
+        splitMethod?: SplitMethod;
+        participants?: ParticipantShareInput[];
+        receiptUrl?: string;
+        baseVersion: number;
+    }): Promise<{
+        id: string;
+        householdId: string;
+        payerId: string;
+        title: string;
+        notes: string | null;
+        amountMinor: bigint;
+        currency: string;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        status: string;
+        createdBy: string;
+        version: number;
+        receiptUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date | null;
+    }>;
+    static cancelExpense(expenseId: string, actorId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        currency: string;
+        createdBy: string;
+        version: number;
+        householdId: string;
+        status: string;
+        payerId: string;
+        title: string;
+        notes: string | null;
+        amountMinor: bigint;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        receiptUrl: string | null;
+        deletedAt: Date | null;
+    }>;
+    static disputeExpense(expenseId: string, actorId: string, reason?: string): Promise<{
+        id: string;
+        householdId: string;
+        payerId: string;
+        title: string;
+        notes: string | null;
+        amountMinor: bigint;
+        currency: string;
+        category: string;
+        expenseDate: Date;
+        splitMethod: string;
+        status: string;
+        createdBy: string;
+        version: number;
+        receiptUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date | null;
+    }>;
+    static addComment(expenseId: string, authorId: string, body: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date | null;
+        expenseId: string;
+        authorId: string;
+        body: string;
+    }>;
+}
