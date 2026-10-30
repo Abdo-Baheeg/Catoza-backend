@@ -10,6 +10,8 @@ export class BalanceService {
             displayName: users.displayName,
             email: users.email,
             avatarUrl: users.avatarUrl,
+            instapayLink: users.instapayLink,
+            instapayUsername: users.instapayUsername,
             status: memberships.status,
         })
             .from(memberships)
@@ -95,6 +97,8 @@ export class BalanceService {
                 toUser: s.toUser,
                 toUserName: toUser?.displayName || "Unknown",
                 amountMinor: s.amountMinor.toString(),
+                toInstapayLink: toUser?.instapayLink || null,
+                toInstapayUsername: toUser?.instapayUsername || null,
             };
         });
         return {

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { errorHandler, ApiError } from "./errors.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { householdRouter } from "./routes/household.routes.js";
@@ -46,6 +47,15 @@ app.use("/api/v1", v1Router);
 app.get("/health", (_req, res) => {
   res.redirect("/api/v1/health");
 });
+
+// Camera Capture PWA interface for snapping receipts & profile photos
+app.get("/camera", (_req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "camera.html"));
+});
+
+// Static file serving for uploads and public assets
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(express.static(path.join(process.cwd(), "public")));
 
 // 404 handler
 app.use((_req, _res, next) => {

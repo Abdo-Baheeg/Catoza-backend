@@ -129,6 +129,8 @@ export class HouseholdService {
             displayName: users.displayName,
             email: users.email,
             avatarUrl: users.avatarUrl,
+            instapayLink: users.instapayLink,
+            instapayUsername: users.instapayUsername,
         })
             .from(memberships)
             .innerJoin(users, eq(memberships.userId, users.id))

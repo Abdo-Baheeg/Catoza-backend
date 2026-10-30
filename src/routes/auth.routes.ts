@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { AuthService } from "../services/auth.service.js";
+import { UploadService } from "../services/upload.service.js";
 import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -11,6 +12,15 @@ const registerSchema = z.object({
   password: z.string().min(8),
   displayName: z.string().min(1).max(100),
   avatarUrl: z.string().url().optional(),
+  instapayLink: z.string().max(255).optional(),
+  instapayUsername: z.string().max(100).optional(),
+});
+
+const updateProfileSchema = z.object({
+  displayName: z.string().min(1).max(100).optional(),
+  avatarUrl: z.string().url().optional(),
+  instapayLink: z.string().max(255).optional(),
+  instapayUsername: z.string().max(100).optional(),
 });
 
 const loginSchema = z.object({
@@ -83,3 +93,50 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
     next(error);
   }
 });
+
+authRouter.patch(
+  "/me",
+  requireAuth,
+  validate({ body: updateProfileSchema }),
+  async (req, res, next) => {
+    try {
+      const updated = await AuthService.updateProfile(req.user!.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+const uploadAvatarSchema = z.object({
+  imageBase64: z.string().min(10, "Base64 image is required"),
+  filename: z.string().optional(),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(),
+});
+
+authRouter.post(
+  "/me/avatar",
+  requireAuth,
+  validate({ body: uploadAvatarSchema }),
+  async (req, res, next) => {
+    try {
+      const upload = await UploadService.saveImage({
+        base64Data: req.body.imageBase64,
+        type: "avatars",
+        filename: req.body.filename,
+        contentType: req.body.contentType,
+      });
+
+      const updated = await AuthService.updateProfile(req.user!.id, {
+        avatarUrl: upload.url,
+      });
+
+      res.status(201).json({
+        user: updated,
+        upload,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);

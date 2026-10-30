@@ -65,6 +65,8 @@ export declare class HouseholdService {
         displayName: string;
         email: string;
         avatarUrl: string | null;
+        instapayLink: string | null;
+        instapayUsername: string | null;
     }[]>;
     static updateMembership(membershipId: string, data: {
         role?: "admin" | "member";

@@ -126,7 +126,9 @@ Creates a new user profile and returns access and refresh tokens.
   "email": "user@example.com",
   "password": "Password123!",
   "displayName": "Ahmed Bahig",
-  "avatarUrl": "https://example.com/avatar.png"
+  "avatarUrl": "https://example.com/avatar.png",
+  "instapayLink": "https://ipn.eg/S/ahmed_bahig",
+  "instapayUsername": "ahmed_bahig"
 }
 ```
 - **Response `201 Created`:**
@@ -137,6 +139,8 @@ Creates a new user profile and returns access and refresh tokens.
     "email": "user@example.com",
     "displayName": "Ahmed Bahig",
     "avatarUrl": "https://example.com/avatar.png",
+    "instapayLink": "https://ipn.eg/S/ahmed_bahig",
+    "instapayUsername": "ahmed_bahig",
     "createdAt": "2026-10-29T21:00:00.000Z"
   },
   "tokens": {
@@ -214,7 +218,57 @@ Retrieves the profile of the currently authenticated user.
   "email": "user@example.com",
   "displayName": "Ahmed Bahig",
   "avatarUrl": "https://example.com/avatar.png",
+  "instapayLink": "https://ipn.eg/S/ahmed_bahig",
+  "instapayUsername": "ahmed_bahig",
   "createdAt": "2026-10-29T21:00:00.000Z"
+}
+```
+
+---
+
+### `PATCH /api/v1/auth/me`
+Updates user profile settings, including avatar URL and Egyptian InstaPay payment link / username.
+
+- **Auth Required:** Bearer Token
+- **Body:**
+```json
+{
+  "displayName": "Ahmed Bahig",
+  "avatarUrl": "https://blob.vercel-storage.com/avatars/user_1.jpg",
+  "instapayLink": "https://ipn.eg/S/ahmed_bahig",
+  "instapayUsername": "ahmed_bahig"
+}
+```
+- **Response `200 OK`:** Updated user profile object.
+
+---
+
+### `POST /api/v1/auth/me/avatar`
+Uploads a user avatar photo (under 500 KB) and directly binds it to `users.avatarUrl`.
+
+- **Auth Required:** Bearer Token
+- **Body:**
+```json
+{
+  "imageBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+  "filename": "my_profile_photo.jpg"
+}
+```
+- **Response `201 Created`:**
+```json
+{
+  "user": {
+    "id": "e4b6c93d-422f-45b7-a3aa-173822d36391",
+    "displayName": "Ahmed Bahig",
+    "avatarUrl": "https://blob.vercel-storage.com/avatars/...",
+    "instapayLink": "https://ipn.eg/S/ahmed_bahig"
+  },
+  "upload": {
+    "url": "https://blob.vercel-storage.com/avatars/...",
+    "fileKey": "avatars/7f918e...-my_profile_photo.jpg",
+    "sizeBytes": 182400,
+    "contentType": "image/jpeg"
+  }
 }
 ```
 
@@ -819,8 +873,48 @@ Registers or refreshes a Firebase Cloud Messaging (FCM) token for push notificat
 
 ## 13. Receipt & File Uploads
 
+### 13.1 Built-in Camera Capture Web Tool
+A mobile-friendly camera capture tool is available at:
+`GET /camera`
+
+Features:
+- Accesses rear camera (`facingMode: "environment"`) for receipts and front camera for avatars.
+- Client-side auto-compresses photos to JPEG (0.75 quality) on HTML `<canvas>` to guarantee size $\le 500$ KB.
+- Uploads directly via `/api/v1/uploads/direct` or `/api/v1/auth/me/avatar`.
+
+For native Android Jetpack Compose camera capture code, see [`docs/android-camera-integration.md`](file:///home/abdo-bahig/Desktop/Catoza%20Backend/Catoza%20Backend/docs/android-camera-integration.md).
+
+---
+
+### `POST /api/v1/uploads/direct`
+Directly receives a base64-encoded image captured by a camera or image picker.
+- Size limit: **500 KB** (strictly enforced).
+- Dual Storage: Uploads to Vercel Blob if `BLOB_READ_WRITE_TOKEN` is set; falls back to local disk (`/uploads/...`) in development.
+
+- **Auth Required:** Bearer Token
+- **Body:**
+```json
+{
+  "imageBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+  "type": "receipts",
+  "filename": "receipt_camera_snap.jpg"
+}
+```
+- Supported `type` values: `"receipts"`, `"avatars"`.
+- **Response `201 Created`:**
+```json
+{
+  "url": "https://blob.vercel-storage.com/receipts/f8a1...-receipt_camera_snap.jpg",
+  "fileKey": "receipts/f8a1...-receipt_camera_snap.jpg",
+  "sizeBytes": 215400,
+  "contentType": "image/jpeg"
+}
+```
+
+---
+
 ### `POST /api/v1/uploads/receipt`
-Requests an upload target URL for receipt images. Enforces a **500 KB limit** to keep storage within free-tier quotas.
+Requests an upload target URL / metadata for receipt images. Enforces a **500 KB limit** to keep storage within free-tier quotas.
 
 - **Auth Required:** Bearer Token
 - **Body:**
@@ -840,6 +934,22 @@ Requests an upload target URL for receipt images. Enforces a **500 KB limit** to
   "maxSizeBytes": 524288
 }
 ```
+
+---
+
+### `POST /api/v1/uploads/avatar`
+Requests upload target metadata for a profile picture.
+
+- **Auth Required:** Bearer Token
+- **Body:**
+```json
+{
+  "filename": "profile.jpg",
+  "contentType": "image/jpeg",
+  "sizeBytes": 150000
+}
+```
+- **Response `200 OK`:** Same schema as receipt upload with `avatars/` path.
 
 ---
 

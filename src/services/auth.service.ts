@@ -20,6 +20,8 @@ export class AuthService {
     password: string;
     displayName: string;
     avatarUrl?: string;
+    instapayLink?: string;
+    instapayUsername?: string;
   }) {
     const existing = await db
       .select({ id: users.id })
@@ -43,12 +45,16 @@ export class AuthService {
         displayName: data.displayName,
         passwordHash,
         avatarUrl: data.avatarUrl,
+        instapayLink: data.instapayLink,
+        instapayUsername: data.instapayUsername,
       })
       .returning({
         id: users.id,
         email: users.email,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        instapayLink: users.instapayLink,
+        instapayUsername: users.instapayUsername,
         createdAt: users.createdAt,
       });
 
@@ -135,6 +141,8 @@ export class AuthService {
         email: users.email,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        instapayLink: users.instapayLink,
+        instapayUsername: users.instapayUsername,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -146,6 +154,45 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  static async updateProfile(
+    userId: string,
+    data: {
+      displayName?: string;
+      avatarUrl?: string;
+      instapayLink?: string;
+      instapayUsername?: string;
+    }
+  ) {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.displayName !== undefined) updateData.displayName = data.displayName;
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+    if (data.instapayLink !== undefined) updateData.instapayLink = data.instapayLink;
+    if (data.instapayUsername !== undefined) updateData.instapayUsername = data.instapayUsername;
+
+    const [updated] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        instapayLink: users.instapayLink,
+        instapayUsername: users.instapayUsername,
+        updatedAt: users.updatedAt,
+      });
+
+    if (!updated) {
+      throw ApiError.notFound("User not found");
+    }
+
+    return updated;
   }
 
   private static async generateTokens(userId: string, email: string, deviceName?: string) {

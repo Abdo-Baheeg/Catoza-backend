@@ -11,6 +11,8 @@ export declare class BalanceService {
                 displayName: string;
                 email: string;
                 avatarUrl: string | null;
+                instapayLink: string | null;
+                instapayUsername: string | null;
                 status: string;
             } | {
                 userId: string;
@@ -25,6 +27,8 @@ export declare class BalanceService {
             toUser: string;
             toUserName: string;
             amountMinor: string;
+            toInstapayLink: string | null;
+            toInstapayUsername: string | null;
         }[];
     }>;
 }
