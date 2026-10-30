@@ -889,7 +889,7 @@ For native Android Jetpack Compose camera capture code, see [`docs/android-camer
 ### `POST /api/v1/uploads/direct`
 Directly receives a base64-encoded image captured by a camera or image picker.
 - Size limit: **500 KB** (strictly enforced).
-- Dual Storage: Uploads to Vercel Blob if `BLOB_READ_WRITE_TOKEN` is set; falls back to local disk (`/uploads/...`) in development.
+- Storage: Uploads to Cloudflare R2 (S3-compatible bucket `catoza`) when credentials are set; falls back to local disk (`/uploads/...`) in development.
 
 - **Auth Required:** Bearer Token
 - **Body:**
@@ -904,7 +904,7 @@ Directly receives a base64-encoded image captured by a camera or image picker.
 - **Response `201 Created`:**
 ```json
 {
-  "url": "https://blob.vercel-storage.com/receipts/f8a1...-receipt_camera_snap.jpg",
+  "url": "https://pub-xxx.r2.dev/receipts/f8a1...-receipt_camera_snap.jpg",
   "fileKey": "receipts/f8a1...-receipt_camera_snap.jpg",
   "sizeBytes": 215400,
   "contentType": "image/jpeg"
@@ -914,7 +914,7 @@ Directly receives a base64-encoded image captured by a camera or image picker.
 ---
 
 ### `POST /api/v1/uploads/receipt`
-Requests an upload target URL / metadata for receipt images. Enforces a **500 KB limit** to keep storage within free-tier quotas.
+Requests an upload target URL / metadata for receipt images. Generates an S3 pre-signed upload URL for Cloudflare R2. Enforces a **500 KB limit** to keep storage within free-tier quotas.
 
 - **Auth Required:** Bearer Token
 - **Body:**
@@ -929,9 +929,11 @@ Requests an upload target URL / metadata for receipt images. Enforces a **500 KB
 - **Response `200 OK`:**
 ```json
 {
-  "uploadUrl": "https://blob.vercel-storage.com/receipts/...",
+  "uploadUrl": "https://002a043468f0003307e86563ada4b83e.r2.cloudflarestorage.com/catoza/receipts/...?...X-Amz-Signature=...",
   "fileKey": "receipts/7f918e...-receipt_oct29.jpg",
-  "maxSizeBytes": 524288
+  "publicUrl": "https://pub-xxx.r2.dev/receipts/...",
+  "maxSizeBytes": 524288,
+  "allowedTypes": ["image/jpeg", "image/png", "image/webp"]
 }
 ```
 

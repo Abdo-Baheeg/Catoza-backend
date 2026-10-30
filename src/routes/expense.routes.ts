@@ -15,6 +15,11 @@ const participantSchema = z.object({
   shares: z.number().optional(),
 });
 
+const urlOrPathSchema = z.string().refine(
+  (val) => val.startsWith("/") || /^https?:\/\//i.test(val),
+  { message: "Must be a valid URL or path starting with '/'" }
+);
+
 const createExpenseSchema = z.object({
   householdId: z.string().uuid().optional(),
   payerId: z.string().uuid(),
@@ -26,7 +31,7 @@ const createExpenseSchema = z.object({
   expenseDate: z.string().datetime().optional(),
   splitMethod: z.enum(["equal", "exact", "percentage", "shares"]).default("equal"),
   participants: z.array(participantSchema).min(1),
-  receiptUrl: z.string().url().optional(),
+  receiptUrl: urlOrPathSchema.optional(),
 });
 
 const updateExpenseSchema = z.object({
@@ -37,7 +42,7 @@ const updateExpenseSchema = z.object({
   expenseDate: z.string().datetime().optional(),
   splitMethod: z.enum(["equal", "exact", "percentage", "shares"]).optional(),
   participants: z.array(participantSchema).optional(),
-  receiptUrl: z.string().url().optional(),
+  receiptUrl: urlOrPathSchema.optional(),
   baseVersion: z.number().int().positive(),
 });
 

@@ -113,6 +113,12 @@ DATABASE_URL=postgresql://user:password@ep-sample-pooler.us-east-2.aws.neon.tech
 JWT_SECRET=your_jwt_secret
 JWT_REFRESH_SECRET=your_jwt_refresh_secret
 CRON_SECRET=your_cron_secret
+
+# Cloudflare R2 file storage
+R2_ENDPOINT=https://002a043468f0003307e86563ada4b83e.r2.cloudflarestorage.com
+R2_BUCKET=catoza
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
 ```
 
 ### 2. Database Migrations

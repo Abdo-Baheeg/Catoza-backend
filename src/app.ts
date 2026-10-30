@@ -13,6 +13,7 @@ import { deviceRouter } from "./routes/device.routes.js";
 import { uploadRouter } from "./routes/upload.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 import { internalRouter } from "./routes/internal.routes.js";
+import { UploadService } from "./services/upload.service.js";
 
 export const app = express();
 
@@ -53,8 +54,26 @@ app.get("/camera", (_req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "camera.html"));
 });
 
-// Static file serving for uploads and public assets
+// Static file serving for uploads and public assets with Cloudflare R2 streaming fallback
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.get("/uploads/:type/:filename", async (req, res, next) => {
+  try {
+    const { type, filename } = req.params;
+    if (type !== "receipts" && type !== "avatars") return next();
+    const safeFilename = path.basename(filename);
+    const fileKey = `${type}/${safeFilename}`;
+    const r2File = await UploadService.getFile(fileKey);
+    if (r2File && r2File.stream) {
+      if (r2File.contentType) res.setHeader("Content-Type", r2File.contentType);
+      if (r2File.contentLength) res.setHeader("Content-Length", r2File.contentLength);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return (r2File.stream as any).pipe(res);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 app.use(express.static(path.join(process.cwd(), "public")));
 
 // 404 handler

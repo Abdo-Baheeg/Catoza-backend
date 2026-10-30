@@ -5,17 +5,18 @@ import { UploadService } from "../services/upload.service.js";
 import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 export const authRouter = Router();
+const urlOrPathSchema = z.string().refine((val) => val.startsWith("/") || /^https?:\/\//i.test(val), { message: "Must be a valid URL or path starting with '/'" });
 const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
     displayName: z.string().min(1).max(100),
-    avatarUrl: z.string().url().optional(),
+    avatarUrl: urlOrPathSchema.optional(),
     instapayLink: z.string().max(255).optional(),
     instapayUsername: z.string().max(100).optional(),
 });
 const updateProfileSchema = z.object({
     displayName: z.string().min(1).max(100).optional(),
-    avatarUrl: z.string().url().optional(),
+    avatarUrl: urlOrPathSchema.optional(),
     instapayLink: z.string().max(255).optional(),
     instapayUsername: z.string().max(100).optional(),
 });

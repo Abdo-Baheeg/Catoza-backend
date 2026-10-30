@@ -22,19 +22,21 @@ const directUploadSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(),
 });
 
-// Require authentication for upload operations
-uploadRouter.use(requireAuth);
+// Require authentication for upload mutation endpoints
+uploadRouter.use("/receipt", requireAuth);
+uploadRouter.use("/avatar", requireAuth);
+uploadRouter.use("/direct", requireAuth);
 
 /**
  * POST /api/v1/uploads/receipt
- * Returns signed target URL or endpoint for receipt photo upload.
+ * Returns pre-signed Cloudflare R2 target URL or endpoint for receipt photo upload.
  */
 uploadRouter.post(
   "/receipt",
   validate({ body: metadataSchema }),
   async (req, res, next) => {
     try {
-      const meta = UploadService.getUploadMetadata({
+      const meta = await UploadService.getUploadMetadata({
         type: "receipts",
         filename: req.body.filename,
         contentType: req.body.contentType,
@@ -49,14 +51,14 @@ uploadRouter.post(
 
 /**
  * POST /api/v1/uploads/avatar
- * Returns signed target URL or endpoint for user profile photo upload.
+ * Returns pre-signed Cloudflare R2 target URL or endpoint for user profile photo upload.
  */
 uploadRouter.post(
   "/avatar",
   validate({ body: metadataSchema }),
   async (req, res, next) => {
     try {
-      const meta = UploadService.getUploadMetadata({
+      const meta = await UploadService.getUploadMetadata({
         type: "avatars",
         filename: req.body.filename,
         contentType: req.body.contentType,
@@ -72,7 +74,7 @@ uploadRouter.post(
 /**
  * POST /api/v1/uploads/direct
  * Directly accepts a base64 encoded photo (under 500 KB) captured by camera or picker.
- * Saves to Vercel Blob (in prod) or local disk (in dev) and returns the public URL.
+ * Saves to Cloudflare R2 (in prod) or local disk (in dev fallback) and returns the public URL.
  */
 uploadRouter.post(
   "/direct",
@@ -94,7 +96,7 @@ uploadRouter.post(
 
 /**
  * GET /api/v1/uploads/:type/:filename
- * Serves locally stored images during local development or when Vercel Blob is not configured.
+ * Serves stored images from local disk or Cloudflare R2.
  */
 uploadRouter.get("/:type/:filename", async (req, res, next) => {
   try {
@@ -104,13 +106,22 @@ uploadRouter.get("/:type/:filename", async (req, res, next) => {
     }
 
     const safeFilename = path.basename(filename);
-    const filePath = path.join(process.cwd(), "uploads", type, safeFilename);
+    const localFilePath = path.join(process.cwd(), "uploads", type, safeFilename);
 
-    if (!fs.existsSync(filePath)) {
-      throw ApiError.notFound("File not found");
+    if (fs.existsSync(localFilePath)) {
+      return res.sendFile(localFilePath);
     }
 
-    res.sendFile(filePath);
+    const fileKey = `${type}/${safeFilename}`;
+    const r2File = await UploadService.getFile(fileKey);
+    if (r2File && r2File.stream) {
+      if (r2File.contentType) res.setHeader("Content-Type", r2File.contentType);
+      if (r2File.contentLength) res.setHeader("Content-Length", r2File.contentLength);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return (r2File.stream as any).pipe(res);
+    }
+
+    throw ApiError.notFound("File not found");
   } catch (error) {
     next(error);
   }
