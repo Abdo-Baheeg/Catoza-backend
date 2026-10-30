@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Flatmates - Camera Capture & Photo Upload</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-top: 8px;
+    }
+    header h1 { font-size: 1.35rem; font-weight: 700; color: #fff; }
+    header p { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .viewfinder-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3/4;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video, img#preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .overlay-grid {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      margin: 16px;
+      border-radius: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--border); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 8px;
+    }
+    .controls-row .btn { flex: 1; }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+    input {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    input:focus { outline: none; border-color: var(--primary); }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #334155;
+      align-self: flex-start;
+    }
+    .badge.ok { background: #065f46; color: #a7f3d0; }
+    .badge.warn { background: #854d0e; color: #fef08a; }
+
+    .status-box {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      word-break: break-all;
+      display: none;
+    }
+    .status-box.active { display: block; }
+    .status-box.success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
+    .status-box.error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>📸 Flatmates Camera</h1>
+    <p>Capture receipt photos & profile avatars (&lt; 500 KB free-tier compliant)</p>
+  </header>
+
+  <!-- Upload Type Selector -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabReceipt" onclick="setMode('receipts')">🧾 Receipt Photo</button>
+    <button class="tab-btn" id="tabAvatar" onclick="setMode('avatars')">👤 Profile Avatar</button>
+  </div>
+
+  <!-- Camera / Preview Area -->
+  <div class="card">
+    <div class="viewfinder-wrapper" id="viewfinder">
+      <video id="video" autoplay playsinline muted></video>
+      <img id="preview" style="display: none;" alt="Preview" />
+      <div class="overlay-grid" id="overlayGrid"></div>
+    </div>
+
+    <!-- Live Size Info -->
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="badge" id="sizeBadge">Camera Ready</span>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Max: 500 KB</span>
+    </div>
+
+    <!-- Camera Actions -->
+    <div class="controls-row" id="cameraControls">
+      <button class="btn btn-secondary" onclick="startCamera()">📷 Open Camera</button>
+      <button class="btn btn-primary" id="btnSnap" onclick="takeSnapshot()" disabled>⚡ Snap Photo</button>
+    </div>
+
+    <!-- Snapshot Review Actions -->
+    <div class="controls-row" id="reviewControls" style="display: none;">
+      <button class="btn btn-secondary" onclick="retakePhoto()">🔄 Retake</button>
+      <button class="btn btn-success" id="btnUpload" onclick="uploadPhoto()">☁️ Upload Now</button>
+    </div>
+
+    <!-- Native File Input Fallback for Mobile Devices -->
+    <div style="text-align: center; margin-top: 4px;">
+      <input type="file" id="fileFallback" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(event)">
+      <button class="btn" style="background: transparent; color: var(--text-muted); font-size: 0.8rem; text-decoration: underline;" onclick="document.getElementById('fileFallback').click()">
+        Or pick from device gallery / native camera
+      </button>
+    </div>
+  </div>
+
+  <!-- Auth Token Configuration -->
+  <div class="card">
+    <div class="input-group">
+      <label for="jwtToken">Authorization Bearer Token (JWT):</label>
+      <input type="text" id="jwtToken" placeholder="Paste your access token here..." />
+    </div>
+  </div>
+
+  <!-- Result Message -->
+  <div id="statusBox" class="status-box"></div>
+</div>
+
+<canvas id="compressCanvas" style="display: none;"></canvas>
+
+<script>
+  let currentMode = "receipts"; // "receipts" or "avatars"
+  let mediaStream = null;
+  let compressedBase64 = null;
+
+  const video = document.getElementById("video");
+  const preview = document.getElementById("preview");
+  const overlayGrid = document.getElementById("overlayGrid");
+  const btnSnap = document.getElementById("btnSnap");
+  const cameraControls = document.getElementById("cameraControls");
+  const reviewControls = document.getElementById("reviewControls");
+  const sizeBadge = document.getElementById("sizeBadge");
+  const statusBox = document.getElementById("statusBox");
+  const fileFallback = document.getElementById("fileFallback");
+
+  // Load saved token from localStorage
+  const savedToken = localStorage.getItem("flatmates_jwt");
+  if (savedToken) {
+    document.getElementById("jwtToken").value = savedToken;
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById("tabReceipt").classList.toggle("active", mode === "receipts");
+    document.getElementById("tabAvatar").classList.toggle("active", mode === "avatars");
+    fileFallback.setAttribute("capture", mode === "receipts" ? "environment" : "user");
+    if (mediaStream) {
+      startCamera(); // restart with appropriate facing mode
+    }
+  }
+
+  async function startCamera() {
+    try {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+      }
+
+      const facingMode = currentMode === "receipts" ? { ideal: "environment" } : { ideal: "user" };
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false
+      });
+
+      video.srcObject = mediaStream;
+      video.style.display = "block";
+      preview.style.display = "none";
+      overlayGrid.style.display = "block";
+      btnSnap.disabled = false;
+      cameraControls.style.display = "flex";
+      reviewControls.style.display = "none";
+      sizeBadge.textContent = "Live Camera Active";
+      sizeBadge.className = "badge ok";
+    } catch (err) {
+      alert("Could not access camera: " + err.message + ". You can use the file picker button below.");
+    }
+  }
+
+  function takeSnapshot() {
+    if (!video.videoWidth) return;
+
+    const canvas = document.getElementById("compressCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Scale to max 1280px on long edge to preserve memory & stay well under 500 KB
+    const maxDimension = 1280;
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+
+    if (width > height && width > maxDimension) {
+      height = Math.round((height * maxDimension) / width);
+      width = maxDimension;
+    } else if (height > maxDimension) {
+      width = Math.round((width * maxDimension) / height);
+      height = maxDimension;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(video, 0, 0, width, height);
+
+    // Compress to JPEG with 0.75 quality
+    compressAndDisplay(canvas.toDataURL("image/jpeg", 0.75));
+
+    // Pause video
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.getElementById("compressCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const maxDim = 1280;
+        let w = img.width;
+        let h = img.height;
+
+        if (w > h && w > maxDim) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else if (h > maxDim) {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        compressAndDisplay(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function compressAndDisplay(dataUrl) {
+    compressedBase64 = dataUrl;
+    preview.src = dataUrl;
+    preview.style.display = "block";
+    video.style.display = "none";
+    overlayGrid.style.display = "none";
+
+    cameraControls.style.display = "none";
+    reviewControls.style.display = "flex";
+
+    // Calculate approximate byte size
+    const byteSize = Math.round((dataUrl.length * 3) / 4);
+    const kb = Math.round(byteSize / 1024);
+
+    sizeBadge.textContent = `${kb} KB / 500 KB (Ready)`;
+    sizeBadge.className = kb <= 500 ? "badge ok" : "badge warn";
+  }
+
+  function retakePhoto() {
+    compressedBase64 = null;
+    preview.style.display = "none";
+    statusBox.classList.remove("active");
+    startCamera();
+  }
+
+  async function uploadPhoto() {
+    const token = document.getElementById("jwtToken").value.trim();
+    if (!token) {
+      showStatus("Please enter your JWT Bearer token first to authenticate the upload.", "error");
+      return;
+    }
+    localStorage.setItem("flatmates_jwt", token);
+
+    const btnUpload = document.getElementById("btnUpload");
+    btnUpload.disabled = true;
+    btnUpload.textContent = "Uploading...";
+
+    try {
+      const endpoint = currentMode === "avatars" ? "/api/v1/auth/me/avatar" : "/api/v1/uploads/direct";
+      const payload = {
+        imageBase64: compressedBase64,
+        type: currentMode,
+        filename: `${currentMode === "avatars" ? "avatar" : "receipt"}_${Date.now()}.jpg`
+      };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Upload failed with status ${res.status}`);
+      }
+
+      const uploadedUrl = data.url || (data.upload && data.upload.url);
+      showStatus(`✅ Upload Successful!<br><strong>URL:</strong> <a href="${uploadedUrl}" target="_blank" style="color:#6ee7b7">${uploadedUrl}</a>`, "success");
+    } catch (err) {
+      showStatus(`❌ ${err.message}`, "error");
+    } finally {
+      btnUpload.disabled = false;
+      btnUpload.textContent = "☁️ Upload Now";
+    }
+  }
+
+  function showStatus(html, type) {
+    statusBox.innerHTML = html;
+    statusBox.className = `status-box active ${type}`;
+  }
+</script>
+
+</body>
+</html>
